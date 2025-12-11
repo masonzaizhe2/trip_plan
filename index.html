@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Toronto → Mont-Tremblant Trip Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useMemo } = React;
+
+      // 行程数据（无 imageUrl）
+      const initialActivities = [
+        { id: 1, day: 1, date: "2025-11-26", time: "08:00",        title: "集合 + 出发",                   location: "Toronto 出发",                        description: "提前一晚确认油箱 / 雪胎 / 行李，准时集合出发。",                     priority: "must" },
+        { id: 2, day: 1, date: "2025-11-26", time: "10:30 – 11:30", title: "Kingston 停靠 + 午餐",          location: "Kingston",                              description: "路上中转，在湖边或市中心简单走走、午餐、上洗手间（可选停靠）。",     priority: "optional" },
+        { id: 3, day: 1, date: "2025-11-26", time: "11:30 – 14:00", title: "Kingston → Ottawa 车程",        location: "在路上",                                description: "继续向 Ottawa 行驶，中途视情况在服务区短暂停靠。",                 priority: "must" },
+        { id: 4, day: 1, date: "2025-11-26", time: "14:00 – 15:30", title: "Ottawa 短暂停靠",                location: "Ottawa 市中心 / ByWard Market",        description: "喜欢城市/拍照的可以下车去 ByWard Market、国会山外面走走，不想逛的可留在车里休息（可选）。", priority: "recommend" },
+        { id: 5, day: 1, date: "2025-11-26", time: "15:30 – 18:00", title: "Ottawa → Mont-Tremblant 车程",  location: "在路上",                                description: "前往 Mont-Tremblant，预留路况机动时间。",                          priority: "must" },
+        { id: 6, day: 1, date: "2025-11-26", time: "18:00 – 19:00", title: "入住酒店 / 分房",              location: "Mont-Tremblant Village",                description: "办理入住，分配房间，收拾行李。",                                   priority: "must" },
+        { id: 7, day: 1, date: "2025-11-26", time: "19:00 – 22:00", title: "小镇晚餐 + 夜景散步",          location: "Mont-Tremblant Village",                description: "在度假小镇里找餐厅晚餐，饭后夜景散步 / 拍照（推荐）。",           priority: "recommend" },
+
+        { id: 8, day: 2, date: "2025-11-27", time: "08:30 – 09:30", title: "早餐 + 整理",                  location: "山脚 / 小镇",                          description: "在小镇找咖啡 / 早餐店，整理装备，准备上山。",                     priority: "must" },
+        { id: 9, day: 2, date: "2025-11-27", time: "09:30 – 12:00", title: "缆车 + 山顶散步 / 雪景观光",  location: "Mont-Tremblant 山上",                  description: "坐缆车上山，在山顶散步、看雪景、拍照。不滑雪的人也可以轻松完成（必玩）。", priority: "must" },
+        { id:10, day: 2, date: "2025-11-27", time: "12:00 – 13:30", title: "小镇午餐",                    location: "山脚 / 小镇",                          description: "在小镇餐厅午餐，大家可根据预算。",                               priority: "must" },
+        { id:11, day: 2, date: "2025-11-27", time: "13:30 – 16:00", title: "小镇自由活动（分组）",        location: "Mont-Tremblant Village + 周边",        description: "分组行动：逛街 / 咖啡 / 再山上走走（可选）。",                     priority: "optional" },
+        { id:12, day: 2, date: "2025-11-27", time: "16:00 – 19:00", title: "Scandinave Spa 温泉",          location: "Scandinave Spa Mont-Tremblant",        description: "森林温泉 + 桑拿 + 冰雪池（强烈推荐）。",                         priority: "must" },
+        { id:13, day: 2, date: "2025-11-27", time: "19:00 – 22:00", title: "小镇晚餐 + 房间休息 / 聚会",  location: "Mont-Tremblant Village / 各自房间",    description: "泡温泉后晚餐 + 随意休息 / 聊天。",                               priority: "recommend" },
+
+        { id:14, day: 3, date: "2025-11-28", time: "09:00 – 10:00", title: "早餐 + 退房",                  location: "酒店",                                  description: "确认行李 / 充电器 / 票据，退房。",                               priority: "must" },
+        { id:15, day: 3, date: "2025-11-28", time: "10:00 – 11:30", title: "Mont-Tremblant → Montréal 车程", location: "在路上",                               description: "前往 Montréal，预留路况机动时间。",                              priority: "must" },
+        { id:16, day: 3, date: "2025-11-28", time: "11:30 – 15:30", title: "Montréal 老城区 + 美食",      location: "Montréal Old Port / 市中心",           description: "散步 + 美食 + 老城区观光（推荐）。",                           priority: "recommend" },
+        { id:17, day: 3, date: "2025-11-28", time: "15:30 – 21:30", title: "Montréal → Toronto 车程",      location: "在路上",                                description: "返程，中途可停休息。",                                         priority: "must" },
+        { id:18, day: 3, date: "2025-11-28", time: "21:30 – 22:00", title: "抵达 GTA / 各自回家",          location: "Toronto / GTA",                        description: "行程结束，注意安全到家。",                                     priority: "must" },
+      ];
+
+      // 10 个成员：Frank, Adam, 王洋, Miki, 天天, Cynthia, Wendy, ccc4, 五尾狐, Daisy
+      const defaultMembers = [
+        "Frank",
+        "Adam",
+        "王洋",
+        "Miki",
+        "天天",
+        "Cynthia",
+        "Wendy",
+        "ccc4",
+        "五尾狐",
+        "Daisy",
+      ];
+
+      const priorityLabelMap = { must: "必玩", recommend: "推荐", optional: "可选" };
+      const priorityColorMap = {
+        must: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+        recommend: "bg-sky-500/10 text-sky-300 border-sky-500/40",
+        optional: "bg-slate-500/10 text-slate-300 border-slate-600/60",
+      };
+
+      function TripPlannerApp() {
+        const [members, setMembers] = useState(defaultMembers);
+        const [selections, setSelections] = useState(() =>
+          initialActivities.reduce((acc, a) => { acc[a.id] = new Set(); return acc; }, {})
+        );
+        const [dayFilter, setDayFilter] = useState("all");
+        const [priorityFilter, setPriorityFilter] = useState("all");
+        const [search, setSearch] = useState("");
+
+        const toggleSelection = (activityId, idx) => {
+          const a = initialActivities.find((x) => x.id === activityId);
+          if (a.priority === "must") return; // 必玩不需要打勾
+          setSelections((prev) => {
+            const s = new Set(prev[activityId]);
+            if (s.has(idx)) s.delete(idx); else s.add(idx);
+            return { ...prev, [activityId]: s };
+          });
+        };
+
+        const clearAll = () => {
+          const obj = {};
+          initialActivities.forEach(a => obj[a.id] = new Set());
+          setSelections(obj);
+        };
+
+        const exportJson = () => {
+          const out = {
+            members,
+            selections: Object.fromEntries(
+              Object.entries(selections).map(([k, s]) => [k, Array.from(s)])
+            ),
+          };
+          navigator.clipboard
+            .writeText(JSON.stringify(out, null, 2))
+            .then(() => alert("已复制 JSON 到剪贴板"), () => alert("复制失败"));
+        };
+
+        const filtered = useMemo(
+          () =>
+            initialActivities.filter((a) => {
+              if (dayFilter !== "all" && a.day !== dayFilter) return false;
+              if (priorityFilter !== "all" && a.priority !== priorityFilter) return false;
+              const kw = search.trim().toLowerCase();
+              if (kw) {
+                const t = (a.title + a.location + a.description).toLowerCase();
+                if (!t.includes(kw)) return false;
+              }
+              return true;
+            }),
+          [dayFilter, priorityFilter, search]
+        );
+
+        return (
+          <div className="p-4 md:p-8">
+            <header className="mb-6">
+              <h1 className="text-3xl text-emerald-400 font-bold mb-2">
+                Toronto → Mont-Tremblant → Montréal Trip Planner
+              </h1>
+              <p className="text-sm text-slate-300 mb-3">
+                必玩项目默认全员参加；只需要对「推荐 / 可选」活动打勾，用来统计大家意向。
+              </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button className="px-3 py-1 bg-slate-800 rounded" onClick={clearAll}>
+                  清空勾选
+                </button>
+                <button className="px-3 py-1 bg-emerald-500 text-slate-950 rounded" onClick={exportJson}>
+                  导出 JSON
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-xs text-slate-300 mb-2">
+                <span>按日期筛选：</span>
+                <button className={`px-2 py-0.5 rounded border ${dayFilter==="all"?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setDayFilter("all")}>全部</button>
+                <button className={`px-2 py-0.5 rounded border ${dayFilter===1?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setDayFilter(1)}>D1</button>
+                <button className={`px-2 py-0.5 rounded border ${dayFilter===2?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setDayFilter(2)}>D2</button>
+                <button className={`px-2 py-0.5 rounded border ${dayFilter===3?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setDayFilter(3)}>D3</button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-xs text-slate-300 mb-2">
+                <span>按优先级：</span>
+                <button className={`px-2 py-0.5 rounded border ${priorityFilter==="all"?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setPriorityFilter("all")}>全部</button>
+                <button className={`px-2 py-0.5 rounded border ${priorityFilter==="must"?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setPriorityFilter("must")}>必玩</button>
+                <button className={`px-2 py-0.5 rounded border ${priorityFilter==="recommend"?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setPriorityFilter("recommend")}>推荐</button>
+                <button className={`px-2 py-0.5 rounded border ${priorityFilter==="optional"?"border-emerald-400 text-emerald-300":"border-slate-600"}`} onClick={()=>setPriorityFilter("optional")}>可选</button>
+              </div>
+
+              <input
+                className="mt-2 w-full max-w-md px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm"
+                placeholder="搜索：温泉 / Montréal / Kingston / 小镇…"
+                value={search}
+                onChange={(e)=>setSearch(e.target.value)}
+              />
+            </header>
+
+            {filtered.map((a) => {
+              const isSelectable = a.priority !== "must";
+              const selectedSet = selections[a.id] || new Set();
+              return (
+                <div key={a.id} className="mb-4 border border-slate-700 rounded-lg bg-slate-900/80">
+                  <div className="p-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-slate-400">
+                        D{a.day} · {a.date} · {a.time}
+                      </span>
+                      <span
+                        className={
+                          "px-2 py-0.5 rounded-full text-xs border " +
+                          priorityColorMap[a.priority]
+                        }
+                      >
+                        {priorityLabelMap[a.priority]}
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-semibold mb-1">{a.title}</h2>
+                    <p className="text-sm text-slate-300 mb-1">{a.location}</p>
+                    <p className="text-sm text-slate-400 mb-3">{a.description}</p>
+
+                    <div className="text-xs text-slate-400 mb-2">
+                      {isSelectable
+                        ? `已勾选人数：${selectedSet.size} / ${members.length}`
+                        : "必玩项目：默认全员参加，无需勾选"}
+                    </div>
+
+                    {isSelectable && (
+                      <div className="flex flex-wrap gap-2">
+                        {members.map((m, i) => (
+                          <label key={i} className="flex items-center gap-1 text-sm bg-slate-800 px-2 py-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={selectedSet.has(i)}
+                              onChange={() => toggleSelection(a.id, i)}
+                            />
+                            <span>{m}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<TripPlannerApp />);
+    </script>
+  </body>
+</html>
